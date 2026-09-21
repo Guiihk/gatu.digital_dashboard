@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Conexão com Google Ads</title>
+  <style>
+    :root{color-scheme:dark;font-family:Inter,ui-sans-serif,system-ui,sans-serif}*{box-sizing:border-box}body{margin:0;background:#181818;color:#f5f5f5;display:grid;place-items:center;min-height:100vh;padding:24px}main{width:min(520px,100%);padding:36px;border:1px solid #3d3d3d;border-left:4px solid #830A7D;border-radius:12px;background:#202020}span{display:inline-grid;place-items:center;width:42px;height:42px;border-radius:10px;background:#830A7D;font-weight:800}h1{font-size:22px;margin:20px 0 10px}p{color:#bbb;line-height:1.55;overflow-wrap:anywhere}small{color:#888}
+  </style>
+</head>
+<body>
+  <main><span id="icon">G</span><h1 id="title"></h1><p id="message"></p><small>Esta janela pode ser fechada.</small></main>
+  <script>
+    const params=new URLSearchParams(location.search);
+    const ok=params.get('ok')==='true';
+    const message=params.get('message')||'Não foi possível concluir a conexão.';
+    document.querySelector('#title').textContent=ok?'Google Ads conectado':'Falha na conexão';
+    document.querySelector('#message').textContent=message;
+    document.querySelector('#icon').textContent=ok?'✓':'!';
+    const result={type:'gatu-google-ads-oauth',ok,message,at:Date.now()};
+    localStorage.setItem('gatu-google-ads-oauth-result',JSON.stringify(result));
+    window.opener?.postMessage(result,location.origin);
+    if(ok)setTimeout(()=>window.close(),1800);
+  </script>
+</body>
+</html>
