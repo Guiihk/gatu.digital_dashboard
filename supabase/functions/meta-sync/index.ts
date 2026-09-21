@@ -353,6 +353,8 @@ async function synchronize(clientId: string, startDate: string, endDate: string)
             impressions: Number(row.impressions || 0),
             clicks: Number(row.inline_link_clicks || row.clicks || 0),
             conversions: outcomes.conversions,
+            reported_sales: outcomes.sales,
+            reported_leads: outcomes.leads,
             conversion_value: actionTotal(row.action_values, metaSaleActionTypes),
             currency_code: String(adAccount.currency_code || 'BRL'),
             source_updated_at: new Date().toISOString(),

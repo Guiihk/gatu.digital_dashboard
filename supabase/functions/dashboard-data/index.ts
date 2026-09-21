@@ -71,18 +71,18 @@ Deno.serve(async req=>{
     const {data:creativeRows,error:creativeError}=campaignIds.length?await adminClient.from('creatives').select('id,campaign_id,name,media_type,preview_url,thumbnail_url,metadata').in('campaign_id',campaignIds):{data:[],error:null};
     if(creativeError) throw creativeError;
     const creativeIds=(creativeRows||[]).map(row=>row.id);
-    const {data:creativeMetricRows,error:creativeMetricError}=creativeIds.length?await adminClient.from('daily_creative_metrics').select('creative_id,spend,conversions').in('creative_id',creativeIds).gte('metric_date',startDate).lte('metric_date',endDate):{data:[],error:null};
+    const {data:creativeMetricRows,error:creativeMetricError}=creativeIds.length?await adminClient.from('daily_creative_metrics').select('creative_id,spend,conversions,reported_sales,reported_leads').in('creative_id',creativeIds).gte('metric_date',startDate).lte('metric_date',endDate):{data:[],error:null};
     if(creativeMetricError) throw creativeMetricError;
-    const creativeTotals=new Map<string,{spend:number,conversions:number}>();
-    for(const row of creativeMetricRows||[]){const total=creativeTotals.get(row.creative_id)||{spend:0,conversions:0};total.spend+=Number(row.spend||0);total.conversions+=Number(row.conversions||0);creativeTotals.set(row.creative_id,total)}
+    const creativeTotals=new Map<string,{spend:number,conversions:number,reportedSales:number,reportedLeads:number}>();
+    for(const row of creativeMetricRows||[]){const total=creativeTotals.get(row.creative_id)||{spend:0,conversions:0,reportedSales:0,reportedLeads:0};total.spend+=Number(row.spend||0);total.conversions+=Number(row.conversions||0);total.reportedSales+=Number(row.reported_sales||0);total.reportedLeads+=Number(row.reported_leads||0);creativeTotals.set(row.creative_id,total)}
     const campaignById=new Map((campaignRows||[]).map(row=>[row.id,row]));
     const creatives=(await Promise.all((creativeRows||[]).map(async row=>{
       const campaign=campaignById.get(row.campaign_id),metadata=row.metadata as Record<string,unknown> | null,ad=metadata?.ad as Record<string,unknown> | undefined;
       const assetPath=typeof metadata?.asset_path==='string'?metadata.asset_path:null;
       let storedPreview:string|null=null;
       if(assetPath){const {data}=await adminClient.storage.from(creativeBucket).createSignedUrl(assetPath,3600);storedPreview=data?.signedUrl||null}
-      return {id:row.id,platform:campaign?accountPlatform.get(campaign.ad_account_id)==='meta_ads'?'meta':'google':'meta',name:row.name,adName:typeof ad?.name==='string'?ad.name:null,mediaType:row.media_type,previewUrl:storedPreview||row.preview_url,thumbnailUrl:row.thumbnail_url,campaignName:campaign?.name,...(creativeTotals.get(row.id)||{spend:0,conversions:0})}
-    }))).filter(row=>row.spend||row.conversions);
+      return {id:row.id,platform:campaign?accountPlatform.get(campaign.ad_account_id)==='meta_ads'?'meta':'google':'meta',name:row.name,adName:typeof ad?.name==='string'?ad.name:null,mediaType:row.media_type,previewUrl:storedPreview||row.preview_url,thumbnailUrl:row.thumbnail_url,campaignName:campaign?.name,...(creativeTotals.get(row.id)||{spend:0,conversions:0,reportedSales:0,reportedLeads:0})}
+    }))).filter(row=>row.spend||row.conversions||row.reportedSales||row.reportedLeads);
     const googleAccountIds=[...accountPlatform.entries()].filter(([,source])=>source==='google_ads').map(([id])=>id);
     const {data:keywordRows,error:keywordError}=googleAccountIds.length?await adminClient.from('google_ads_keywords').select('id,keyword_text,match_type,ad_group_name,campaigns(name)').in('ad_account_id',googleAccountIds):{data:[],error:null};
     if(keywordError)throw keywordError;
